@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<!-- Declares this file as an HTML5 document -->
+
+<html lang="en">
+<!-- Root HTML tag; lang="en" tells the browser the page language is English -->
+
+<head>
+    <meta charset="UTF-8" />
+    <!-- Supports almost all characters and symbols properly -->
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Makes the layout responsive on mobile and tablet screens -->
+
+    <title>Endee RAG Chatbot</title>
+    <!-- Title shown in the browser tab -->
+
+    <link rel="stylesheet" href="style.css" />
+    <!-- Connects this HTML file with the external CSS file -->
+</head>
+
+<body>
+    <!-- Main visible content of the webpage starts here -->
+
+    <div class="app-shell">
+        <!-- Outer wrapper used for full-page alignment -->
+
+        <div class="chat-container">
+            <!-- Main chatbot box -->
+
+            <header class="chat-header">
+                <!-- Top header section of the chatbot -->
+
+                <div class="brand">
+                    <!-- Branding area: icon + title + subtitle -->
+
+                    <div class="brand-icon">🤖</div>
+                    <!-- Chatbot icon -->
+
+                    <div class="brand-text">
+                        <h1>Endee RAG Chatbot</h1>
+                        <!-- Main project title -->
+
+                        <p>AI assistant powered by semantic retrieval</p>
+                        <!-- Small subtitle describing the chatbot -->
+                    </div>
+                </div>
+
+                <div class="header-actions">
+                    <!-- Right side of header: status + clear button -->
+
+                    <div class="status-badge" id="statusBadge">Connecting...</div>
+                    <!-- Dynamic status label updated by JavaScript -->
+
+                    <button class="clear-btn" onclick="clearChat()">Clear Chat</button>
+                    <!-- Calls clearChat() function from JavaScript -->
+                </div>
+            </header>
+
+            <section class="chat-intro">
+                <!-- Intro section to explain project purpose -->
+
+                <h2>Ask smarter questions</h2>
+
+                <p>
+                    This assistant uses a modern AI workflow designed for Retrieval-Augmented Generation, semantic search, and vector-based knowledge retrieval.
+                </p>
+            </section>
+
+            <section class="suggestions">
+                <!-- Suggestion buttons to help users test the chatbot quickly -->
+
+                <button class="suggestion-chip" onclick="fillPrompt('What is Retrieval-Augmented Generation?')">
+                    What is RAG?
+                </button>
+
+                <button class="suggestion-chip" onclick="fillPrompt('How does vector search improve chatbot answers?')">
+                    Vector search
+                </button>
+
+                <button class="suggestion-chip" onclick="fillPrompt('Explain the purpose of Endee in this project')">
+                    Endee usage
+                </button>
+
+                <button class="suggestion-chip" onclick="fillPrompt('How can I improve chatbot response speed?')">
+                    Improve speed
+                </button>
+            </section>
+
+            <main id="messages" class="chat-messages"></main>
+            <!-- Chat messages will be inserted here dynamically using JavaScript -->
+
+            <div class="chat-input-wrapper">
+                <!-- Bottom input section -->
+
+                <div class="chat-input-area">
+                    <!-- Input field + send button -->
+
+                    <input id="input" type="text" placeholder="Ask something about your knowledge base..." autocomplete="off" />
+                    <!-- User types the message here -->
+
+                    <button id="sendBtn" onclick="send()" aria-label="Send message">
+                        Send
+                    </button>
+                    <!-- Calls send() function from JavaScript -->
+                </div>
+
+                <p class="input-note">
+                    Tip: Ask about RAG, vector databases, semantic retrieval, or your project content.
+                </p>
+                <!-- Small helper note below input -->
+            </div>
+
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <!-- Connects the HTML page with the external JavaScript file -->
+</body>
+
+</html>
