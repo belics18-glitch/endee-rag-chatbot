@@ -1,0 +1,9 @@
+RAG stands for Retrieval-Augmented Generation. It improves answer quality by retrieving relevant information before generating a response.
+
+A vector database stores text embeddings and helps search content based on meaning instead of exact keywords.
+
+Endee is used in this project as the vector database layer for storing and retrieving relevant knowledge.
+
+Semantic search allows the chatbot to find related information even if the exact same words are not used in the query.
+
+This chatbot uses FastAPI for the backend, JavaScript for the frontend, and a language model for response generation.
