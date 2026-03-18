@@ -1,170 +1,168 @@
-🚀 Endee-Powered RAG Chatbot
+🚀 Endee RAG Chatbot
 
-Built with FastAPI, Sentence Transformers, and Groq LLM to demonstrate a real-world RAG system architecture.
-An intelligent AI chatbot built using Retrieval-Augmented Generation (RAG).
-It retrieves relevant knowledge and generates accurate, context-aware responses using an LLM.
+An AI-powered chatbot built using FastAPI, JavaScript, and Groq LLM, demonstrating a Retrieval-Augmented Generation (RAG) workflow with a vector database concept (Endee).
+
+🌐 Live Demo
+
+🔗 https://endee-rag-chatbot-1.onrender.com
 
 📌 Project Overview
 
-This project demonstrates a complete RAG pipeline:
+This project implements a RAG-based AI chatbot that enhances response accuracy by retrieving relevant information from a knowledge base before generating answers.
 
-Frontend → FastAPI Backend → Vector Retrieval → LLM → Response
+Instead of relying solely on the language model, the system:
 
-The system uses semantic search instead of keyword matching to improve answer quality.
+Converts user queries into embeddings
 
-🧠 Key Features
+Performs semantic search
 
-Semantic search using embeddings
+Retrieves relevant knowledge chunks
 
-Context-aware AI responses
+Generates responses using contextual data
 
-Local embedding model (no API cost)
+🧠 Key Concepts
 
-Modern UI (black + neon green theme)
+🔹 RAG (Retrieval-Augmented Generation)
 
-Debug endpoints for testing
+🔹 Semantic Search using Embeddings
 
-Endee-ready architecture
+🔹 Vector Database Concept (Endee)
 
-⚙️ Tech Stack
+🔹 Context-aware AI Responses
 
-Frontend:
+🛠️ Tech Stack
+🔹 Frontend
 
-HTML
+HTML5
 
-CSS
+CSS3 (Modern UI, responsive design)
 
-JavaScript
+JavaScript (Fetch API, DOM manipulation)
 
-Backend:
+🔹 Backend
 
 FastAPI (Python)
 
 Uvicorn
 
-AI:
+🔹 AI & ML
 
-Sentence Transformers (all-MiniLM-L6-v2)
+Groq API (LLM)
 
-Groq API (LLaMA 3.3)
+Sentence Transformers (Embeddings)
 
-🏗️ System Flow
+🔹 Deployment
 
+Backend: Render
+
+Version Control: GitHub
+
+⚙️ How It Works
 User Query
-↓
-Frontend
-↓
-FastAPI Backend
-↓
-Query Embedding
-↓
-Semantic Search
-↓
-Top Relevant Chunks
-↓
-LLM Response
-↓
-Frontend Display
+   ↓
+Convert to Embeddings
+   ↓
+Semantic Search (Vector DB / Endee Concept)
+   ↓
+Retrieve Relevant Chunks
+   ↓
+Send Context + Query to LLM
+   ↓
+Generate Context-Aware Response
+✨ Features
 
-📂 Project Structure
+✅ AI chatbot with real-time responses
+✅ Retrieval-based answer generation (RAG)
+✅ Semantic search using embeddings
+✅ Context display (retrieved chunks)
+✅ Clean and modern UI
+✅ Deployed backend (cloud-ready)
+✅ Error handling and fallback responses
 
-backend/
-├── main.py
-├── knowledge.txt
-├── requirements.txt
+📁 Project Structure
+project-root/
+│
+├── backend/
+│   ├── main.py
+│   ├── knowledge_base.py
+│   ├── requirements.txt
+│
+├── frontend/
+│   ├── index.html
+│   ├── style.css
+│   ├── script.js
+│
 └── README.md
-
-🔄 RAG Pipeline
-
-Load knowledge from file
-
-Split into chunks
-
-Convert chunks into embeddings
-
-Store embeddings in memory
-
-Convert user query into embedding
-
-Perform semantic search
-
-Retrieve top relevant chunks
-
-Send context to LLM
-
-Generate final answer
-
-📡 API Endpoints
-
-/ → Backend status
-/health → Health check
-/warmup → Server ready
-/knowledge-status → Knowledge info
-/debug-state → Debug info
-/chat → Main chatbot API
-
-🧪 Example Request
-
-POST /chat
-
-{
-"message": "What is RAG?"
-}
-
-🎨 UI Features
-
-Dark theme with neon green accents
-
-Suggestion prompts
-
-Context display
-
-Chat history
-
-Clear chat option
-
-🚀 How to Run
-
-Install dependencies
+🚀 Setup Instructions
+1️⃣ Clone Repository
+git clone https://github.com/your-username/your-repo-name.git
+cd your-repo-name
+2️⃣ Backend Setup
+cd backend
 pip install -r requirements.txt
 
-Add .env file
-GROQ_API_KEY=your_api_key
+Create .env file:
 
-Run server
-python -m uvicorn main:app --reload
+GROQ_API_KEY=your_api_key_here
 
-Open browser
-http://127.0.0.1:8000
+Run backend:
 
-🧠 Endee Note
+uvicorn main:app --reload
+3️⃣ Frontend Setup
 
-This project follows an Endee-compatible architecture.
-Currently, vector search is implemented locally and can be replaced with Endee without changing the pipeline.
+Open index.html in browser
+or deploy using Netlify / GitHub Pages
+
+🔑 Environment Variables
+Variable	Description
+GROQ_API_KEY	Groq API key for LLM
+🧪 Example Queries
+
+Try:
+
+What is Retrieval-Augmented Generation?
+
+What is Endee?
+
+How does vector search improve chatbot answers?
 
 ⚠️ Limitations
 
-Local vector storage
+Knowledge is limited to the predefined dataset
 
-No persistent database
+Responses depend on retrieval accuracy
 
-Limited knowledge base
+No persistent database (in-memory storage)
 
-🔮 Future Improvements
+All users share the same knowledge base
 
-Integrate Endee vector database
+🚀 Future Enhancements
 
-Add persistent storage
+Persistent vector database integration (Endee full implementation)
 
-Improve retrieval accuracy
+User authentication & session-based memory
 
-Deploy to cloud
+Document upload support
+
+Real-time streaming responses
+
+Advanced ranking algorithms
+
+🙏 Acknowledgement
+
+Groq API for LLM support
+
+FastAPI for backend framework
+
+Sentence Transformers for embeddings
+
+ChatGPT for development assistance
+
+📢 Conclusion
+
+This project successfully demonstrates a RAG-based AI system where responses are generated using retrieved context from a knowledge base, showcasing the practical use of vector databases (Endee concept) in modern AI applications.
 
 👨‍💻 Author
 
 Belics B
-Final Year CSE
-
-⭐ Conclusion
-
-This project demonstrates how modern AI systems combine retrieval, embeddings, and LLMs to generate accurate responses.
+Full-Stack Developer | AI Enthusiast 🚀
