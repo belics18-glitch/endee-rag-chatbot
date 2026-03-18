@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
@@ -6,7 +6,7 @@ from openai import OpenAI
 from sentence_transformers import SentenceTransformer
 import os
 import uuid
-from typing import List
+from knowledge_base import SAMPLE_DOCS
 
 load_dotenv()
 
@@ -20,187 +20,104 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ---------- Models ----------
 class ChatRequest(BaseModel):
     message: str
 
-class IngestRequest(BaseModel):
-    title: str
-    content: str
-
-# ---------- LLM ----------
-groq_api_key = os.getenv("GROQ_API_KEY")
-if not groq_api_key:
-    raise ValueError("GROQ_API_KEY is missing")
-
 client = OpenAI(
-    api_key=groq_api_key,
+    api_key=os.getenv("GROQ_API_KEY"),
     base_url="https://api.groq.com/openai/v1",
 )
 
-# ---------- Embedding Model ----------
 embedder = SentenceTransformer("all-MiniLM-L6-v2")
 
-# ---------- Simple session memory ----------
-SYSTEM_PROMPT = (
-    "You are a helpful RAG assistant. "
-    "Answer only from the provided retrieved context when possible. "
-    "If the answer is not in the context, say that clearly."
-)
+SYSTEM_PROMPT = "You are a helpful RAG assistant. Answer based on given context."
 
-chat_history = [
-    {"role": "system", "content": SYSTEM_PROMPT}
-]
+chat_history = [{"role": "system", "content": SYSTEM_PROMPT}]
 
-# ---------- Endee Adapter ----------
-# Replace these methods with your actual Endee integration.
-# The rest of the code can remain unchanged.
-class EndeeAdapter:
-    def __init__(self):
-        # Initialize your Endee connection here
-        # Example: create/open collection or index
-        pass
+VECTOR_DB = []
 
-    def upsert_chunks(self, items: List[dict]):
-        """
-        items format:
-        [
-            {
-                "id": "...",
-                "text": "...",
-                "vector": [...],
-                "metadata": {"source": "...", "chunk_index": 0}
-            }
-        ]
-        """
-        # TODO: Replace with actual Endee upsert/index code
-        # For now, this stores in fallback local memory so app works
-        global LOCAL_VECTOR_STORE
-        LOCAL_VECTOR_STORE.extend(items)
+# ---------- CHUNK ----------
+def chunk_text(text, size=200):
+    return [text[i:i+size] for i in range(0, len(text), size)]
 
-    def search(self, query_vector: List[float], top_k: int = 3) -> List[dict]:
-        # TODO: Replace with actual Endee similarity search
-        # Fallback local cosine-like dot similarity
-        scored = []
-        for item in LOCAL_VECTOR_STORE:
-            score = sum(a * b for a, b in zip(query_vector, item["vector"]))
-            scored.append((score, item))
-        scored.sort(key=lambda x: x[0], reverse=True)
-        return [item for _, item in scored[:top_k]]
-
-LOCAL_VECTOR_STORE = []
-endee = EndeeAdapter()
-
-# ---------- Helpers ----------
-def chunk_text(text: str, chunk_size: int = 500, overlap: int = 100) -> List[str]:
-    chunks = []
-    start = 0
-    while start < len(text):
-        end = start + chunk_size
-        chunk = text[start:end].strip()
-        if chunk:
-            chunks.append(chunk)
-        start += chunk_size - overlap
-    return chunks
-
-def embed_text(text: str) -> List[float]:
+# ---------- EMBEDDING ----------
+def embed(text):
     return embedder.encode(text).tolist()
 
-def build_context(chunks: List[dict]) -> str:
-    return "\n\n".join(
-        [f"[Source: {c['metadata'].get('source', 'unknown')}]\n{c['text']}" for c in chunks]
-    )
+# ---------- PRELOAD ----------
+def preload():
+    for doc in SAMPLE_DOCS:
+        chunks = chunk_text(doc["content"])
+        for chunk in chunks:
+            VECTOR_DB.append({
+                "id": str(uuid.uuid4()),
+                "text": chunk,
+                "vector": embed(chunk),
+                "source": doc["title"]
+            })
 
-# ---------- Routes ----------
+preload()
+
+# ---------- SEARCH ----------
+def search(query, top_k=2):
+    q_vec = embed(query)
+
+    scored = []
+    for item in VECTOR_DB:
+        score = sum(a*b for a,b in zip(q_vec, item["vector"]))
+        scored.append((score, item))
+
+    scored.sort(reverse=True, key=lambda x: x[0])
+
+    return [i[1] for i in scored[:top_k]]
+
+# ---------- ROUTES ----------
 @app.get("/")
 def home():
-    return {"status": "Backend is running"}
+    return {"status": "running"}
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
-@app.post("/ingest")
-def ingest(req: IngestRequest):
-    if not req.title.strip():
-        raise HTTPException(status_code=400, detail="Title is required")
-    if not req.content.strip():
-        raise HTTPException(status_code=400, detail="Content is required")
-
-    chunks = chunk_text(req.content)
-    items = []
-
-    for i, chunk in enumerate(chunks):
-        vector = embed_text(chunk)
-        items.append({
-            "id": str(uuid.uuid4()),
-            "text": chunk,
-            "vector": vector,
-            "metadata": {
-                "source": req.title,
-                "chunk_index": i
-            }
-        })
-
-    endee.upsert_chunks(items)
-
-    return {
-        "message": "Document ingested successfully",
-        "chunks_indexed": len(items)
-    }
-
 @app.post("/chat")
 def chat(req: ChatRequest):
     global chat_history
 
-    user_message = req.message.strip()
-    if not user_message:
-        raise HTTPException(status_code=400, detail="Message cannot be empty")
+    user_msg = req.message
 
-    try:
-        query_vector = embed_text(user_message)
-        matched = endee.search(query_vector, top_k=3)
+    # 🔍 Retrieve context
+    results = search(user_msg)
+    context = "\n".join([r["text"] for r in results])
 
-        matched_chunks = [m["text"] for m in matched]
-        context_text = build_context(matched)
+    # 🧠 RAG Prompt
+    rag_prompt = f"""
+Question: {user_msg}
 
-        rag_user_prompt = (
-            f"User question:\n{user_message}\n\n"
-            f"Retrieved context:\n{context_text}\n\n"
-            "Answer the user using the retrieved context."
-        )
+Context:
+{context}
 
-        messages = [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            *chat_history[-6:],   # lightweight memory
-            {"role": "user", "content": rag_user_prompt}
-        ]
+Answer based only on the context.
+"""
 
-        completion = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
-            messages=messages,
-            temperature=0.4,
-        )
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": rag_prompt}
+    ]
 
-        reply = completion.choices[0].message.content or "No reply received."
+    completion = client.chat.completions.create(
+        model="llama-3.1-8b-instant",
+        messages=messages,
+        temperature=0.5
+    )
 
-        chat_history.append({"role": "user", "content": user_message})
-        chat_history.append({"role": "assistant", "content": reply})
+    reply = completion.choices[0].message.content
 
-        if len(chat_history) > 14:
-            chat_history = [chat_history[0]] + chat_history[-12:]
-
-        return {
-            "reply": reply,
-            "matched_chunks": matched_chunks
-        }
-
-    except Exception as e:
-        print("CHAT ERROR:", str(e))
-        raise HTTPException(status_code=500, detail=str(e))
+    return {
+        "reply": reply,
+        "matched_chunks": [r["text"] for r in results]
+    }
 
 @app.post("/clear")
-def clear_chat():
-    global chat_history
-    chat_history = [{"role": "system", "content": SYSTEM_PROMPT}]
-    return {"message": "Chat history cleared successfully"}
+def clear():
+    return {"message": "No memory to clear"}
