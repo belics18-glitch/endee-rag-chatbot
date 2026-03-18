@@ -7,6 +7,7 @@ from sentence_transformers import SentenceTransformer
 import numpy as np
 import os
 import uuid
+import re
 from knowledge_base import SAMPLE_DOCS
 
 load_dotenv()
@@ -38,11 +39,20 @@ Rules:
 1. Answer ONLY from the retrieved context.
 2. Do NOT use outside knowledge.
 3. If the answer is not in the context, reply exactly:
-   The answer is not available in the knowledge base.
+The answer is not available in the knowledge base.
 4. Keep answers short and clear.
 """
 
 VECTOR_DB = []
+
+STOPWORDS = {
+    "what", "is", "the", "a", "an", "of", "and", "to", "in", "for",
+    "how", "does", "this", "that", "it", "on", "with", "used", "are"
+}
+
+def tokenize(text: str):
+    words = re.findall(r"[a-zA-Z0-9]+", text.lower())
+    return {w for w in words if w not in STOPWORDS and len(w) > 2}
 
 # ---------- CHUNK ----------
 def chunk_text(text, size=200):
@@ -62,28 +72,45 @@ def preload():
                 "id": str(uuid.uuid4()),
                 "text": chunk,
                 "vector": embed(chunk),
-                "source": doc["title"]
+                "source": doc["title"],
+                "tokens": tokenize(chunk)
             })
 
 preload()
 
 # ---------- SEARCH ----------
-def search(query, top_k=2, threshold=0.70):
+def search(query, top_k=2, threshold=0.62, min_keyword_overlap=1):
+    query_tokens = tokenize(query)
     q_vec = np.array(embed(query), dtype=np.float32)
 
     scored = []
     for item in VECTOR_DB:
         item_vec = np.array(item["vector"], dtype=np.float32)
+        score = float(np.dot(q_vec, item_vec))  # cosine similarity due to normalized embeddings
+        overlap = len(query_tokens.intersection(item["tokens"]))
 
-        # cosine similarity because embeddings are normalized
-        score = float(np.dot(q_vec, item_vec))
-        scored.append((score, item))
+        scored.append({
+            "score": score,
+            "overlap": overlap,
+            "item": item
+        })
 
-    scored.sort(key=lambda x: x[0], reverse=True)
+    scored.sort(key=lambda x: x["score"], reverse=True)
 
-    print("TOP SCORES:", [(round(score, 4), item["source"]) for score, item in scored[:5]])
+    print("TOP RESULTS:", [
+        {
+            "score": round(x["score"], 4),
+            "overlap": x["overlap"],
+            "source": x["item"]["source"]
+        }
+        for x in scored[:5]
+    ])
 
-    filtered = [item for score, item in scored if score >= threshold]
+    filtered = []
+    for entry in scored:
+        if entry["score"] >= threshold and entry["overlap"] >= min_keyword_overlap:
+            filtered.append(entry["item"])
+
     return filtered[:top_k]
 
 # ---------- ROUTES ----------
@@ -105,9 +132,9 @@ def chat(req: ChatRequest):
             "matched_chunks": []
         }
 
-    results = search(user_msg, top_k=2, threshold=0.55)
+    results = search(user_msg, top_k=2, threshold=0.62, min_keyword_overlap=1)
 
-    # HARD BLOCK: no relevant context -> no LLM call
+    # HARD BLOCK: if retrieval is not confident enough, do not call LLM
     if not results:
         return {
             "reply": "The answer is not available in the knowledge base.",
