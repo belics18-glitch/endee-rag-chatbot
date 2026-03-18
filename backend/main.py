@@ -68,17 +68,20 @@ def preload():
 preload()
 
 # ---------- SEARCH ----------
-def search(query, top_k=2, threshold=0.45):
+def search(query, top_k=2, threshold=0.60):
     q_vec = embed(query)
 
     scored = []
     for item in VECTOR_DB:
-        score = sum(a*b for a,b in zip(q_vec, item["vector"]))
+        score = sum(a * b for a, b in zip(q_vec, item["vector"]))
         scored.append((score, item))
 
     scored.sort(reverse=True, key=lambda x: x[0])
 
-    filtered = [item for score, item in scored if score > threshold]
+    filtered = []
+    for score, item in scored:
+        if score >= threshold:
+            filtered.append(item)
 
     return filtered[:top_k]
 
@@ -93,15 +96,26 @@ def health():
 
 @app.post("/chat")
 def chat(req: ChatRequest):
-    global chat_history
+    user_msg = req.message.strip()
 
-    user_msg = req.message
+    if not user_msg:
+        return {
+            "reply": "Message cannot be empty.",
+            "matched_chunks": []
+        }
 
-    # 🔍 Retrieve context
-    results = search(user_msg)
-    context = "\n".join([r["text"] for r in results])
+    results = search(user_msg, top_k=2, threshold=0.60)
 
-    # 🧠 RAG Prompt
+    # IMPORTANT: if nothing relevant found, do NOT call the LLM
+    if not results:
+        return {
+            "reply": "The answer is not available in the knowledge base.",
+            "matched_chunks": []
+        }
+
+    matched_chunks = [r["text"] for r in results]
+    context = "\n".join(matched_chunks).strip()
+
     rag_prompt = f"""
 User Question:
 {user_msg}
@@ -109,28 +123,27 @@ User Question:
 Retrieved Context:
 {context}
 
-Instructions:
-- Answer ONLY using the retrieved context
-- If answer is NOT present, reply exactly:
+Rules:
+- Answer ONLY from the retrieved context.
+- Do NOT use outside knowledge.
+- If the answer is not clearly present in the context, reply exactly:
 The answer is not available in the knowledge base.
 """
 
-    messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": rag_prompt}
-    ]
-
     completion = client.chat.completions.create(
         model="llama-3.1-8b-instant",
-        messages=messages,
-        temperature=0.5
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": rag_prompt}
+        ],
+        temperature=0.0
     )
 
-    reply = completion.choices[0].message.content
+    reply = completion.choices[0].message.content or "The answer is not available in the knowledge base."
 
     return {
         "reply": reply,
-        "matched_chunks": [r["text"] for r in results]
+        "matched_chunks": matched_chunks
     }
 
 @app.post("/clear")
