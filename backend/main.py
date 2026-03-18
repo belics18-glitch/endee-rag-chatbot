@@ -64,7 +64,7 @@ def chat(req: ChatRequest):
             chat_history = [chat_history[0]] + chat_history[-20:]
 
         completion = client.chat.completions.create(
-            model="llama3-8b-8192",
+            model="llama3-70b-8192",
             messages=chat_history
         )
 
