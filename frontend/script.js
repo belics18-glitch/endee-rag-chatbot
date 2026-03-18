@@ -10,8 +10,8 @@ const statusBadge = document.getElementById("statusBadge");
 // Gets the send button from HTML
 const sendBtn = document.getElementById("sendBtn");
 
-// Backend URL for local development
-const BACKEND_URL = "http://127.0.0.1:8000";
+// Backend URL for deployed Render backend
+const BACKEND_URL = "https://YOUR_RENDER_BACKEND_URL.onrender.com";
 
 const toggleContextBtn = document.getElementById("toggleContextBtn");
 let showContext = true;
@@ -28,37 +28,28 @@ window.addEventListener("load", async() => {
 // Function to ping the backend when page opens
 async function wakeUpBackend() {
     try {
-        // Update status badge
         if (statusBadge) statusBadge.textContent = "Connecting...";
 
-        // Show system message to user
         addSystemMessage("Connecting to server...");
 
-        // Call backend health endpoint
         const res = await fetch(`${BACKEND_URL}/health`, {
             method: "GET"
         });
 
-        // If response is not successful, throw error
         if (!res.ok) {
             throw new Error("Health check failed");
         }
 
-        // Remove temporary system message
         removeSystemMessage();
 
-        // Update badge to online
         if (statusBadge) statusBadge.textContent = "Online";
 
         addSystemMessage("Server connected successfully");
 
-        // Remove system message after 1.5 seconds
         setTimeout(removeSystemMessage, 1500);
-
     } catch (error) {
         removeSystemMessage();
 
-        // If backend is sleeping, show waking-up message
         if (statusBadge) statusBadge.textContent = "Waking up...";
         addSystemMessage("Server is waking up. First reply may take a few seconds.");
 
@@ -68,68 +59,53 @@ async function wakeUpBackend() {
 
 // Sends a user message to backend
 async function send() {
-    // Removes extra spaces from input
     const msg = input.value.trim();
 
-    // Prevents empty message or double sending
     if (!msg || isSending) return;
 
     isSending = true;
     sendBtn.disabled = true;
 
-    // Adds user message to chat UI
     addMessage("🧑 " + msg, "user");
 
-    // Clears input box
     input.value = "";
     input.focus();
 
-    // Shows temporary loading message
     addLoadingMessage("🤖 Thinking...");
 
     try {
-        // Sends POST request to backend /chat endpoint
         const res = await fetch(`${BACKEND_URL}/chat`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
-            // Converts JavaScript object into JSON string
             body: JSON.stringify({ message: msg })
         });
 
-        // Converts backend response into JavaScript object
         const data = await res.json();
 
-        // Removes loading message
         removeLoadingMessage();
 
-        // If backend returns error
         if (!res.ok) {
             throw new Error(data.detail || "Something went wrong");
         }
 
-        // Update status
         if (statusBadge) statusBadge.textContent = "Online";
 
-        // Show bot reply
-        addMessage("🤖 " + data.reply, "bot");
+        addMessage("🤖 " + (data.reply || "No reply received from server."), "bot");
 
         if (showContext && data.matched_chunks && data.matched_chunks.length > 0) {
             addContextBox(data.matched_chunks);
         }
-
     } catch (error) {
         removeLoadingMessage();
 
         if (statusBadge) statusBadge.textContent = "Error";
 
-        // Show user-friendly fallback message
         addMessage("🤖 Sorry, I couldn't get a response from the server.", "bot");
 
         console.error("Chat error:", error);
     } finally {
-        // Re-enable sending after response
         isSending = false;
         sendBtn.disabled = false;
     }
@@ -166,21 +142,14 @@ function toggleContextVisibility() {
 // General function to add any message to the chat area
 function addMessage(text, sender, id = null) {
     const msgDiv = document.createElement("div");
-
-    // Adds CSS classes like "message user" or "message bot"
     msgDiv.className = `message ${sender}`;
-
-    // Inserts text inside the div
     msgDiv.textContent = text;
 
-    // Optionally assigns an ID
     if (id) {
         msgDiv.id = id;
     }
 
-    // Appends the new message into chat box
     messagesDiv.appendChild(msgDiv);
-
     scrollToBottom();
 }
 
@@ -234,7 +203,7 @@ function addContextBox(chunks) {
 
     contextDiv.appendChild(title);
 
-    chunks.forEach((chunk, index) => {
+    chunks.forEach((chunk) => {
         const item = document.createElement("div");
         item.className = "context-item";
         item.textContent = `• ${chunk}`;
