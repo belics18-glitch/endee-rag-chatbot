@@ -18,8 +18,6 @@ app.add_middleware(
 )
 
 api_key = os.getenv("GROQ_API_KEY")
-if not api_key:
-    raise ValueError("GROQ_API_KEY is missing")
 
 client = OpenAI(
     api_key=api_key,
@@ -48,11 +46,14 @@ def health():
 def chat(req: ChatRequest):
     global chat_history
 
-    user_message = req.message.strip()
-    if not user_message:
-        raise HTTPException(status_code=400, detail="Message cannot be empty")
-
     try:
+        if not api_key:
+            raise HTTPException(status_code=500, detail="GROQ_API_KEY is missing in Render environment variables")
+
+        user_message = req.message.strip()
+        if not user_message:
+            raise HTTPException(status_code=400, detail="Message cannot be empty")
+
         chat_history.append({
             "role": "user",
             "content": user_message
@@ -66,7 +67,10 @@ def chat(req: ChatRequest):
             messages=chat_history
         )
 
-        reply = completion.choices[0].message.content or "No reply received."
+        reply = completion.choices[0].message.content
+
+        if not reply:
+            reply = "No reply received."
 
         chat_history.append({
             "role": "assistant",
@@ -75,6 +79,8 @@ def chat(req: ChatRequest):
 
         return {"reply": reply}
 
+    except HTTPException:
+        raise
     except Exception as e:
         print("CHAT ERROR:", str(e))
         raise HTTPException(status_code=500, detail=str(e))
