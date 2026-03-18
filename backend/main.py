@@ -17,15 +17,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+api_key = os.getenv("GROQ_API_KEY")
+if not api_key:
+    raise ValueError("GROQ_API_KEY is missing")
+
 client = OpenAI(
-    api_key=os.getenv("GROQ_API_KEY"),
+    api_key=api_key,
     base_url="https://api.groq.com/openai/v1",
 )
 
 class ChatRequest(BaseModel):
     message: str
 
-# Global chat memory
 chat_history = [
     {
         "role": "system",
@@ -45,19 +48,16 @@ def health():
 def chat(req: ChatRequest):
     global chat_history
 
+    user_message = req.message.strip()
+    if not user_message:
+        raise HTTPException(status_code=400, detail="Message cannot be empty")
+
     try:
-        user_message = req.message.strip()
-
-        if not user_message:
-            raise HTTPException(status_code=400, detail="Message cannot be empty")
-
-        # Add user message to history
         chat_history.append({
             "role": "user",
             "content": user_message
         })
 
-        # Keep recent memory only
         if len(chat_history) > 21:
             chat_history = [chat_history[0]] + chat_history[-20:]
 
@@ -66,9 +66,8 @@ def chat(req: ChatRequest):
             messages=chat_history
         )
 
-        reply = completion.choices[0].message.content
+        reply = completion.choices[0].message.content or "No reply received."
 
-        # Add assistant reply to history
         chat_history.append({
             "role": "assistant",
             "content": reply
@@ -76,9 +75,8 @@ def chat(req: ChatRequest):
 
         return {"reply": reply}
 
-    except HTTPException:
-        raise
     except Exception as e:
+        print("CHAT ERROR:", str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/clear")
