@@ -17,15 +17,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+class ChatRequest(BaseModel):
+    message: str
+
 api_key = os.getenv("GROQ_API_KEY")
 
 client = OpenAI(
     api_key=api_key,
     base_url="https://api.groq.com/openai/v1",
 )
-
-class ChatRequest(BaseModel):
-    message: str
 
 chat_history = [
     {
@@ -48,9 +48,10 @@ def chat(req: ChatRequest):
 
     try:
         if not api_key:
-            raise HTTPException(status_code=500, detail="GROQ_API_KEY is missing in Render environment variables")
+            raise HTTPException(status_code=500, detail="GROQ_API_KEY is missing in Render")
 
         user_message = req.message.strip()
+
         if not user_message:
             raise HTTPException(status_code=400, detail="Message cannot be empty")
 
