@@ -70,7 +70,7 @@ async function send() {
         let data = {};
         try {
             data = await res.json();
-        } catch (jsonError) {
+        } catch (e) {
             data = {};
         }
 
@@ -92,8 +92,8 @@ async function send() {
         removeLoadingMessage();
 
         if (statusBadge) statusBadge.textContent = "Error";
-
         addMessage("🤖 Error: " + error.message, "bot");
+
         console.error("Chat error:", error);
     } finally {
         isSending = false;
