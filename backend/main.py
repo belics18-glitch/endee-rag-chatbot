@@ -68,7 +68,7 @@ def preload():
 preload()
 
 # ---------- SEARCH ----------
-def search(query, top_k=2, threshold=0.60):
+def search(query, top_k=2, threshold=0.75):
     q_vec = embed(query)
 
     scored = []
@@ -78,6 +78,7 @@ def search(query, top_k=2, threshold=0.60):
 
     scored.sort(reverse=True, key=lambda x: x[0])
 
+    # 🔥 IMPORTANT: only keep HIGH similarity
     filtered = []
     for score, item in scored:
         if score >= threshold:
@@ -104,9 +105,9 @@ def chat(req: ChatRequest):
             "matched_chunks": []
         }
 
-    results = search(user_msg, top_k=2, threshold=0.60)
+    results = search(user_msg, top_k=2, threshold=0.75)
 
-    # IMPORTANT: if nothing relevant found, do NOT call the LLM
+    # 🚨 HARD STOP — NO LLM CALL
     if not results:
         return {
             "reply": "The answer is not available in the knowledge base.",
@@ -114,20 +115,16 @@ def chat(req: ChatRequest):
         }
 
     matched_chunks = [r["text"] for r in results]
-    context = "\n".join(matched_chunks).strip()
+    context = "\n".join(matched_chunks)
 
     rag_prompt = f"""
-User Question:
-{user_msg}
+Answer ONLY from the context.
 
-Retrieved Context:
+Context:
 {context}
 
-Rules:
-- Answer ONLY from the retrieved context.
-- Do NOT use outside knowledge.
-- If the answer is not clearly present in the context, reply exactly:
-The answer is not available in the knowledge base.
+Question:
+{user_msg}
 """
 
     completion = client.chat.completions.create(
@@ -139,7 +136,7 @@ The answer is not available in the knowledge base.
         temperature=0.0
     )
 
-    reply = completion.choices[0].message.content or "The answer is not available in the knowledge base."
+    reply = completion.choices[0].message.content
 
     return {
         "reply": reply,
