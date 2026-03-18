@@ -68,7 +68,7 @@ def preload():
 preload()
 
 # ---------- SEARCH ----------
-def search(query, top_k=2, threshold=0.55):
+def search(query, top_k=2, threshold=0.70):
     q_vec = np.array(embed(query), dtype=np.float32)
 
     scored = []
