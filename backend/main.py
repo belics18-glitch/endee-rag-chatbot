@@ -48,7 +48,7 @@ def chat(req: ChatRequest):
 
     try:
         if not api_key:
-            raise HTTPException(status_code=500, detail="GROQ_API_KEY is missing in Render")
+            raise HTTPException(status_code=500, detail="GROQ_API_KEY is missing in Render environment variables")
 
         user_message = req.message.strip()
 
