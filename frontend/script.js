@@ -113,9 +113,23 @@ function fillPrompt(text) {
     input.focus();
 }
 
-function clearChat() {
+async function clearChat() {
     messagesDiv.innerHTML = "";
     addWelcomeMessage();
+
+    try {
+        await fetch(`${BACKEND_URL}/clear`, {
+            method: "POST"
+        });
+
+        if (statusBadge) statusBadge.textContent = "Online";
+        addSystemMessage("Chat history cleared successfully");
+        setTimeout(removeSystemMessage, 1500);
+    } catch (error) {
+        console.error("Failed to clear backend chat history:", error);
+        addSystemMessage("Frontend chat cleared, but backend memory could not be cleared.");
+        setTimeout(removeSystemMessage, 2000);
+    }
 }
 
 function toggleContextVisibility() {
