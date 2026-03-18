@@ -11,7 +11,7 @@ const statusBadge = document.getElementById("statusBadge");
 const sendBtn = document.getElementById("sendBtn");
 
 // Backend URL for deployed Render backend
-const BACKEND_URL = "https://YOUR_RENDER_BACKEND_URL.onrender.com";
+const BACKEND_URL = "https://endee-rag-chatbot-1.onrender.com";
 
 const toggleContextBtn = document.getElementById("toggleContextBtn");
 let showContext = true;
