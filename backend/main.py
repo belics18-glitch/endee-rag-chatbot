@@ -25,7 +25,7 @@ client = OpenAI(
 class ChatRequest(BaseModel):
     message: str
 
-# Stores chat history in server memory
+# Global chat memory
 chat_history = [
     {
         "role": "system",
@@ -51,13 +51,13 @@ def chat(req: ChatRequest):
         if not user_message:
             raise HTTPException(status_code=400, detail="Message cannot be empty")
 
-        # Add user message to memory
+        # Add user message to history
         chat_history.append({
             "role": "user",
             "content": user_message
         })
 
-        # Keep only recent messages to avoid too much token usage
+        # Keep recent memory only
         if len(chat_history) > 21:
             chat_history = [chat_history[0]] + chat_history[-20:]
 
@@ -68,16 +68,16 @@ def chat(req: ChatRequest):
 
         reply = completion.choices[0].message.content
 
-        # Add assistant reply to memory
+        # Add assistant reply to history
         chat_history.append({
             "role": "assistant",
             "content": reply
         })
 
-        return {
-            "reply": reply
-        }
+        return {"reply": reply}
 
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
