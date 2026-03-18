@@ -77,7 +77,7 @@ async function send() {
         removeLoadingMessage();
 
         if (!res.ok) {
-            throw new Error(data.detail || "Something went wrong");
+            throw new Error(data.detail || `HTTP ${res.status}: Request failed`);
         }
 
         if (statusBadge) statusBadge.textContent = "Online";
@@ -92,8 +92,8 @@ async function send() {
         removeLoadingMessage();
 
         if (statusBadge) statusBadge.textContent = "Error";
-        addMessage("🤖 Sorry, I couldn't get a response from the server.", "bot");
 
+        addMessage("🤖 Error: " + error.message, "bot");
         console.error("Chat error:", error);
     } finally {
         isSending = false;
