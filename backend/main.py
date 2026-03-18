@@ -27,10 +27,12 @@ client = OpenAI(
     base_url="https://api.groq.com/openai/v1",
 )
 
+SYSTEM_PROMPT = "You are a helpful AI assistant. Answer clearly and briefly."
+
 chat_history = [
     {
         "role": "system",
-        "content": "You are a helpful AI assistant. Answer clearly and briefly."
+        "content": SYSTEM_PROMPT
     }
 ]
 
@@ -62,14 +64,13 @@ def chat(req: ChatRequest):
             "content": user_message
         })
 
-        # keep system prompt + last 20 messages
         if len(chat_history) > 21:
             chat_history = [chat_history[0]] + chat_history[-20:]
 
         completion = client.chat.completions.create(
             model="llama-3.1-8b-instant",
             messages=chat_history,
-            temperature=0.7,
+            temperature=0.7
         )
 
         reply = completion.choices[0].message.content or "No reply received."
@@ -94,7 +95,7 @@ def clear_chat():
     chat_history = [
         {
             "role": "system",
-            "content": "You are a helpful AI assistant. Answer clearly and briefly."
+            "content": SYSTEM_PROMPT
         }
     ]
 
