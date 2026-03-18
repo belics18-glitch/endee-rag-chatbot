@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from openai import OpenAI
 from sentence_transformers import SentenceTransformer
+import numpy as np
 import os
 import uuid
 from knowledge_base import SAMPLE_DOCS
@@ -37,21 +38,20 @@ Rules:
 1. Answer ONLY from the retrieved context.
 2. Do NOT use outside knowledge.
 3. If the answer is not in the context, reply exactly:
-   "The answer is not available in the knowledge base."
+   The answer is not available in the knowledge base.
 4. Keep answers short and clear.
 """
-
-chat_history = [{"role": "system", "content": SYSTEM_PROMPT}]
 
 VECTOR_DB = []
 
 # ---------- CHUNK ----------
 def chunk_text(text, size=200):
-    return [text[i:i+size] for i in range(0, len(text), size)]
+    return [text[i:i + size] for i in range(0, len(text), size)]
 
 # ---------- EMBEDDING ----------
 def embed(text):
-    return embedder.encode(text).tolist()
+    vec = embedder.encode(text, normalize_embeddings=True)
+    return vec.tolist()
 
 # ---------- PRELOAD ----------
 def preload():
@@ -68,22 +68,22 @@ def preload():
 preload()
 
 # ---------- SEARCH ----------
-def search(query, top_k=2, threshold=0.85):
-    q_vec = embed(query)
+def search(query, top_k=2, threshold=0.55):
+    q_vec = np.array(embed(query), dtype=np.float32)
 
     scored = []
     for item in VECTOR_DB:
-        score = sum(a * b for a, b in zip(q_vec, item["vector"]))
+        item_vec = np.array(item["vector"], dtype=np.float32)
+
+        # cosine similarity because embeddings are normalized
+        score = float(np.dot(q_vec, item_vec))
         scored.append((score, item))
 
-    scored.sort(reverse=True, key=lambda x: x[0])
+    scored.sort(key=lambda x: x[0], reverse=True)
 
-    # 🔥 IMPORTANT: only keep HIGH similarity
-    filtered = []
-    for score, item in scored:
-        if score >= threshold:
-            filtered.append(item)
+    print("TOP SCORES:", [(round(score, 4), item["source"]) for score, item in scored[:5]])
 
+    filtered = [item for score, item in scored if score >= threshold]
     return filtered[:top_k]
 
 # ---------- ROUTES ----------
@@ -105,9 +105,9 @@ def chat(req: ChatRequest):
             "matched_chunks": []
         }
 
-    results = search(user_msg, top_k=2, threshold=0.75)
+    results = search(user_msg, top_k=2, threshold=0.55)
 
-    # 🚨 HARD STOP — NO LLM CALL
+    # HARD BLOCK: no relevant context -> no LLM call
     if not results:
         return {
             "reply": "The answer is not available in the knowledge base.",
@@ -118,13 +118,16 @@ def chat(req: ChatRequest):
     context = "\n".join(matched_chunks)
 
     rag_prompt = f"""
-Answer ONLY from the context.
+Answer ONLY from the context below.
 
 Context:
 {context}
 
 Question:
 {user_msg}
+
+If the answer is not clearly present in the context, reply exactly:
+The answer is not available in the knowledge base.
 """
 
     completion = client.chat.completions.create(
@@ -136,7 +139,7 @@ Question:
         temperature=0.0
     )
 
-    reply = completion.choices[0].message.content
+    reply = completion.choices[0].message.content or "The answer is not available in the knowledge base."
 
     return {
         "reply": reply,
