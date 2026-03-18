@@ -68,7 +68,7 @@ def preload():
 preload()
 
 # ---------- SEARCH ----------
-def search(query, top_k=2, threshold=0.75):
+def search(query, top_k=2, threshold=0.85):
     q_vec = embed(query)
 
     scored = []
