@@ -48,10 +48,12 @@ def chat(req: ChatRequest):
 
     try:
         if not api_key:
-            raise HTTPException(status_code=500, detail="GROQ_API_KEY is missing in Render environment variables")
+            raise HTTPException(
+                status_code=500,
+                detail="GROQ_API_KEY is missing in Render environment variables"
+            )
 
         user_message = req.message.strip()
-
         if not user_message:
             raise HTTPException(status_code=400, detail="Message cannot be empty")
 
@@ -60,18 +62,17 @@ def chat(req: ChatRequest):
             "content": user_message
         })
 
+        # keep system prompt + last 20 messages
         if len(chat_history) > 21:
             chat_history = [chat_history[0]] + chat_history[-20:]
 
         completion = client.chat.completions.create(
-            model="mixtral-8x7b-32768",
-            messages=chat_history
+            model="llama-3.1-8b-instant",
+            messages=chat_history,
+            temperature=0.7,
         )
 
-        reply = completion.choices[0].message.content
-
-        if not reply:
-            reply = "No reply received."
+        reply = completion.choices[0].message.content or "No reply received."
 
         chat_history.append({
             "role": "assistant",
