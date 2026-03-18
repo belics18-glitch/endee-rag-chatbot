@@ -79,37 +79,28 @@ def preload():
 preload()
 
 # ---------- SEARCH ----------
-def search(query, top_k=2, threshold=0.62, min_keyword_overlap=1):
-    query_tokens = tokenize(query)
+def search(query, top_k=2, threshold=0.45):
     q_vec = np.array(embed(query), dtype=np.float32)
+    query_lower = query.lower()
 
     scored = []
     for item in VECTOR_DB:
         item_vec = np.array(item["vector"], dtype=np.float32)
-        score = float(np.dot(q_vec, item_vec))  # cosine similarity due to normalized embeddings
-        overlap = len(query_tokens.intersection(item["tokens"]))
+        score = float(np.dot(q_vec, item_vec))
 
-        scored.append({
-            "score": score,
-            "overlap": overlap,
-            "item": item
-        })
+        # 🔥 KEYWORD BOOST (IMPORTANT)
+        keyword_match = any(word in item["text"].lower() for word in query_lower.split())
 
-    scored.sort(key=lambda x: x["score"], reverse=True)
+        if keyword_match:
+            score += 0.2  # boost score if keyword present
 
-    print("TOP RESULTS:", [
-        {
-            "score": round(x["score"], 4),
-            "overlap": x["overlap"],
-            "source": x["item"]["source"]
-        }
-        for x in scored[:5]
-    ])
+        scored.append((score, item))
 
-    filtered = []
-    for entry in scored:
-        if entry["score"] >= threshold and entry["overlap"] >= min_keyword_overlap:
-            filtered.append(entry["item"])
+    scored.sort(key=lambda x: x[0], reverse=True)
+
+    print("TOP SCORES:", [(round(s, 4), it["source"]) for s, it in scored[:5]])
+
+    filtered = [item for score, item in scored if score >= threshold]
 
     return filtered[:top_k]
 
@@ -135,11 +126,11 @@ def chat(req: ChatRequest):
     results = search(user_msg, top_k=2, threshold=0.62, min_keyword_overlap=1)
 
     # HARD BLOCK: if retrieval is not confident enough, do not call LLM
-    if not results:
-        return {
-            "reply": "The answer is not available in the knowledge base.",
-            "matched_chunks": []
-        }
+if not results or len(results) == 0:
+    return {
+        "reply": "The answer is not available in the knowledge base.",
+        "matched_chunks": []
+    }
 
     matched_chunks = [r["text"] for r in results]
     context = "\n".join(matched_chunks)

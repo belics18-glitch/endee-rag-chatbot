@@ -27,11 +27,20 @@ Vector search helps retrieve relevant context quickly and accurately.
 {
 "title": "Endee",
 "content": """
-Endee is a vector database used for storing embeddings.
-It allows fast similarity search for AI applications.
-In this project, Endee is used to store chunked document embeddings.
-When a user asks a question, the system retrieves the most relevant chunks from Endee.
-These chunks are then passed to the language model for generating accurate answers.
+Endee is a vector database used in this project.
+
+Its purpose is:
+1. Store embeddings of text data
+2. Perform similarity search
+3. Retrieve relevant chunks for user queries
+
+In this project:
+- User query is converted into embeddings
+- Endee retrieves similar chunks
+- These chunks are passed to the AI model
+- The model generates answers based on that context
+
+This is how RAG is implemented using Endee.
 """
 },
 
