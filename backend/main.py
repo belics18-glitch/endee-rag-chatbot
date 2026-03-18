@@ -79,20 +79,23 @@ def preload():
 preload()
 
 # ---------- SEARCH ----------
-def search(query, top_k=2, threshold=0.45):
+def search(query, top_k=2, threshold=0.40):
     q_vec = np.array(embed(query), dtype=np.float32)
-    query_lower = query.lower()
+    query_words = query.lower().split()
 
     scored = []
+
     for item in VECTOR_DB:
         item_vec = np.array(item["vector"], dtype=np.float32)
+
+        # cosine similarity
         score = float(np.dot(q_vec, item_vec))
 
-        # 🔥 KEYWORD BOOST (IMPORTANT)
-        keyword_match = any(word in item["text"].lower() for word in query_lower.split())
+        # 🔥 STRONG keyword boost
+        keyword_match = any(word in item["text"].lower() for word in query_words)
 
         if keyword_match:
-            score += 0.2  # boost score if keyword present
+            score += 0.3   # bigger boost
 
         scored.append((score, item))
 
@@ -100,6 +103,7 @@ def search(query, top_k=2, threshold=0.45):
 
     print("TOP SCORES:", [(round(s, 4), it["source"]) for s, it in scored[:5]])
 
+    # only take meaningful matches
     filtered = [item for score, item in scored if score >= threshold]
 
     return filtered[:top_k]
@@ -126,7 +130,7 @@ def chat(req: ChatRequest):
     results = search(user_msg, top_k=2, threshold=0.62, min_keyword_overlap=1)
 
     # HARD BLOCK: if retrieval is not confident enough, do not call LLM
-if not results or len(results) == 0:
+if not results:
     return {
         "reply": "The answer is not available in the knowledge base.",
         "matched_chunks": []
