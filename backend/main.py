@@ -30,7 +30,16 @@ client = OpenAI(
 
 embedder = SentenceTransformer("all-MiniLM-L6-v2")
 
-SYSTEM_PROMPT = "You are a helpful RAG assistant. Answer based on given context."
+SYSTEM_PROMPT = """
+You are a strict RAG assistant.
+
+Rules:
+1. Answer ONLY from the retrieved context.
+2. Do NOT use outside knowledge.
+3. If the answer is not in the context, reply exactly:
+   "The answer is not available in the knowledge base."
+4. Keep answers short and clear.
+"""
 
 chat_history = [{"role": "system", "content": SYSTEM_PROMPT}]
 
@@ -59,7 +68,7 @@ def preload():
 preload()
 
 # ---------- SEARCH ----------
-def search(query, top_k=2):
+def search(query, top_k=2, threshold=0.45):
     q_vec = embed(query)
 
     scored = []
@@ -69,7 +78,9 @@ def search(query, top_k=2):
 
     scored.sort(reverse=True, key=lambda x: x[0])
 
-    return [i[1] for i in scored[:top_k]]
+    filtered = [item for score, item in scored if score > threshold]
+
+    return filtered[:top_k]
 
 # ---------- ROUTES ----------
 @app.get("/")
@@ -92,12 +103,16 @@ def chat(req: ChatRequest):
 
     # 🧠 RAG Prompt
     rag_prompt = f"""
-Question: {user_msg}
+User Question:
+{user_msg}
 
-Context:
+Retrieved Context:
 {context}
 
-Answer based only on the context.
+Instructions:
+- Answer ONLY using the retrieved context
+- If answer is NOT present, reply exactly:
+The answer is not available in the knowledge base.
 """
 
     messages = [
