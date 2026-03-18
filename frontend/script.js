@@ -1,35 +1,22 @@
-// Gets the input box from HTML
 const input = document.getElementById("input");
-
-// Gets the message area from HTML
 const messagesDiv = document.getElementById("messages");
-
-// Gets the status badge from HTML
 const statusBadge = document.getElementById("statusBadge");
-
-// Gets the send button from HTML
 const sendBtn = document.getElementById("sendBtn");
+const toggleContextBtn = document.getElementById("toggleContextBtn");
 
-// Backend URL for deployed Render backend
 const BACKEND_URL = "https://endee-rag-chatbot-1.onrender.com";
 
-const toggleContextBtn = document.getElementById("toggleContextBtn");
 let showContext = true;
-
-// Prevents multiple requests while one message is being sent
 let isSending = false;
 
-// Runs when the page fully loads
 window.addEventListener("load", async() => {
     addWelcomeMessage();
     await wakeUpBackend();
 });
 
-// Function to ping the backend when page opens
 async function wakeUpBackend() {
     try {
         if (statusBadge) statusBadge.textContent = "Connecting...";
-
         addSystemMessage("Connecting to server...");
 
         const res = await fetch(`${BACKEND_URL}/health`, {
@@ -43,7 +30,6 @@ async function wakeUpBackend() {
         removeSystemMessage();
 
         if (statusBadge) statusBadge.textContent = "Online";
-
         addSystemMessage("Server connected successfully");
 
         setTimeout(removeSystemMessage, 1500);
@@ -57,7 +43,6 @@ async function wakeUpBackend() {
     }
 }
 
-// Sends a user message to backend
 async function send() {
     const msg = input.value.trim();
 
@@ -82,7 +67,12 @@ async function send() {
             body: JSON.stringify({ message: msg })
         });
 
-        const data = await res.json();
+        let data = {};
+        try {
+            data = await res.json();
+        } catch (jsonError) {
+            data = {};
+        }
 
         removeLoadingMessage();
 
@@ -97,11 +87,11 @@ async function send() {
         if (showContext && data.matched_chunks && data.matched_chunks.length > 0) {
             addContextBox(data.matched_chunks);
         }
+
     } catch (error) {
         removeLoadingMessage();
 
         if (statusBadge) statusBadge.textContent = "Error";
-
         addMessage("🤖 Sorry, I couldn't get a response from the server.", "bot");
 
         console.error("Chat error:", error);
@@ -111,7 +101,6 @@ async function send() {
     }
 }
 
-// Adds a starting bot message when page loads
 function addWelcomeMessage() {
     addMessage(
         "🤖 Hello 👋\nI am an Endee-powered RAG assistant.\nI retrieve relevant knowledge and generate accurate answers.\nAsk me anything about RAG, vector databases, or this project.",
@@ -119,13 +108,11 @@ function addWelcomeMessage() {
     );
 }
 
-// Fills input box when suggestion chip is clicked
 function fillPrompt(text) {
     input.value = text;
     input.focus();
 }
 
-// Clears the entire chat window
 function clearChat() {
     messagesDiv.innerHTML = "";
     addWelcomeMessage();
@@ -139,7 +126,6 @@ function toggleContextVisibility() {
     }
 }
 
-// General function to add any message to the chat area
 function addMessage(text, sender, id = null) {
     const msgDiv = document.createElement("div");
     msgDiv.className = `message ${sender}`;
@@ -153,8 +139,9 @@ function addMessage(text, sender, id = null) {
     scrollToBottom();
 }
 
-// Adds a loading message
 function addLoadingMessage(text) {
+    removeLoadingMessage();
+
     const loadingDiv = document.createElement("div");
     loadingDiv.className = "message bot loading";
     loadingDiv.id = "loading";
@@ -164,7 +151,6 @@ function addLoadingMessage(text) {
     scrollToBottom();
 }
 
-// Removes the loading message
 function removeLoadingMessage() {
     const loading = document.getElementById("loading");
     if (loading) {
@@ -172,7 +158,6 @@ function removeLoadingMessage() {
     }
 }
 
-// Adds a system info message
 function addSystemMessage(text) {
     removeSystemMessage();
 
@@ -185,7 +170,6 @@ function addSystemMessage(text) {
     scrollToBottom();
 }
 
-// Removes system message if it exists
 function removeSystemMessage() {
     const systemMsg = document.getElementById("system-message");
     if (systemMsg) {
@@ -214,13 +198,11 @@ function addContextBox(chunks) {
     scrollToBottom();
 }
 
-// Automatically scrolls chat to bottom
 function scrollToBottom() {
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
 
-// Sends message when Enter key is pressed
-input.addEventListener("keypress", function(e) {
+input.addEventListener("keydown", function(e) {
     if (e.key === "Enter") {
         e.preventDefault();
         send();

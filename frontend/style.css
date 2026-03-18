@@ -11,6 +11,11 @@ body {
     color: #e8ffe8;
 }
 
+button,
+input {
+    font: inherit;
+}
+
 .app-shell {
     min-height: 100vh;
     display: flex;
@@ -60,6 +65,7 @@ body {
     background: linear-gradient(135deg, #00c800, #00ff66);
     color: #021802;
     box-shadow: 0 0 18px rgba(0, 255, 90, 0.25);
+    flex-shrink: 0;
 }
 
 .brand-text h1 {
@@ -78,6 +84,7 @@ body {
     display: flex;
     align-items: center;
     gap: 10px;
+    flex-wrap: wrap;
 }
 
 .status-badge {
@@ -344,7 +351,6 @@ body {
     .header-actions {
         width: 100%;
         justify-content: space-between;
-        flex-wrap: wrap;
     }
     .message {
         max-width: 88%;
@@ -375,5 +381,9 @@ body {
     }
     .brand-text h1 {
         font-size: 17px;
+    }
+    .suggestion-chip {
+        width: 100%;
+        text-align: center;
     }
 }
